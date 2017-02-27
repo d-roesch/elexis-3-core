@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Elexis Print
+Bundle-SymbolicName: ch.elexis.core.print;singleton:=true
+Bundle-Version: 3.2.0.qualifier
+Bundle-Vendor: vality GmbH
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-Localization: plugin
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ ch.elexis.core.ui,
+ ch.rgw.utility,
+ ch.elexis.core.data,
+ org.eclipse.jface

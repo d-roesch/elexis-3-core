@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension-point id="ch.elexis.core.print" name="printing" schema="schema/ch.elexis.core.print.exsd"/>
+	<extension
+		point="org.eclipse.ui.preferencePages">
+      <page
+            category="ch.elexis.core.ui.preferences.SystemPreferencePage"
+            class="ch.elexis.core.print.preferences.PrintPreferences"
+            id="ch.elexis.core.printing.preferences.PrintPreferences"
+            name="%PrintPreferences">
+      </page>
+   </extension>
+ <extension
+       point="org.eclipse.ui.commands">
+    <command
+          id="ch.elexis.core.print.printAppointment"
+          name="printAppointment">
+    </command>
+ </extension>
+ <extension
+       point="org.eclipse.ui.handlers">
+    <handler
+          class="ch.elexis.core.print.handlers.TestHandler"
+          commandId="ch.elexis.core.print.printAppointment">
+       <activeWhen>
+          <with
+                variable="ch.elexis.core.print.sourceprovider.printplugin">
+             <equals
+                   value="Default">
+             </equals>
+          </with></activeWhen>
+    </handler>
+ </extension>
+ <extension
+       point="org.eclipse.ui.services">
+    <sourceProvider
+          provider="ch.elexis.core.print.sourceprovider.PrintSourceProvider">
+       <variable
+             name="ch.elexis.core.print.sourceprovider.printplugin"
+             priorityLevel="workbench">
+       </variable>
+    </sourceProvider>
+ </extension>
+</plugin>
