@@ -19,6 +19,9 @@ location "http://download.eclipse.org/technology/babel/update-site/R0.16.0/oxyge
 	org.eclipse.ui.browser.nl_de
 	org.eclipse.ui.browser.nl_fr
 	org.eclipse.ui.browser.nl_it
+	org.eclipse.ui.views.nl_de
+	org.eclipse.ui.views.nl_fr
+	org.eclipse.ui.views.nl_it
 }
 
 location "http://download.eclipse.org/e4/snapshots/org.eclipse.e4.tools/latest/" {
@@ -145,6 +148,7 @@ location "http://download.elexis.info/elexis-server/elexis-server-dependencies" 
 	ca.uhn.hapi.structures-v251.source
 	ca.uhn.hapi.structures-v26
 	ca.uhn.hapi.structures-v26.source
+	com.mysql.cj 
 }
 
 location "http://download.elexis.info/elexis.3.3rdparty.libraries/snapshot" {
@@ -205,7 +209,6 @@ location "http://download.elexis.info/elexis.3.3rdparty.libraries/snapshot" {
 	com.ibm.icu.4j 2.6.1
 	com.lowagie.itext 2.0.8
 	com.lowagie.itext.source 2.0.8
-	com.mysql.jdbc 5.1.21
 	com.sun.jna 3.0.9
 	com.sun.jna.source 3.0.9
 	com.thoughtworks.xstream 1.2.2

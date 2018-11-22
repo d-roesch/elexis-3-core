@@ -563,6 +563,7 @@ public class Messages extends NLS {
 	public static String EditAUFDialog_percent;
 	public static String EditAUFDialog_reason;
 	public static String EditAUFDialog_until;
+	public static String ReminderListSelectionDialog_SelectToClose;
 	public static String EditReminderDialog_actionwhenDue;
 	public static String EditReminderDialog_all;
 	public static String EditReminderDialog_assigTo;
@@ -2677,7 +2678,6 @@ public class Messages extends NLS {
 	public static String LabEvaluationRulesPreferencePage_btnCheckNonStringEqualRefValResValIsPathologicText_text;
 	public static String LabEvaluationRulesPreferencePage_lblWennKeineRegel_text;
 	public static String LabEvaluationRulesPreferencePage_lblResultatEndbestimmt_text;
-	public static String LabEvaluationRulesPreferencePage_lblLabNoPathFlagMeansNonPath_text;
 	public static String MPF_Rule_PathDescriptionText;
 	public static String BestellView_Title;
 	public static String BestellView_WizardAskNewOrder;
