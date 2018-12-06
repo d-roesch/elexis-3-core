@@ -141,6 +141,7 @@ public class Preferences {
 	public static final String USR_REMINDER_AUTO_SELECT_PATIENT = "reminder/autoSelectPatient"; //$NON-NLS-1$
 	public static final String USR_REMINDER_DEFAULT_PATIENT_RELATED =
 		"reminder/defaultPatientRelated"; //$NON-NLS-1$
+	public static final String USR_REMINDER_SELECTED_RESPONSIBLES_DEFAULT = "reminder/defaultSelectedResponsibles"; //$NON-NLS-1$
 	public static final String USR_MFU_LIST_SIZE = "mfulist/size"; //$NON-NLS-1$
 	public static final String USR_PLAF = "anwender/plaf"; //$NON-NLS-1$
 	public static final String USR_DEFAULTFONT = "anwender/stdfont"; //$NON-NLS-1$
@@ -158,6 +159,7 @@ public class Preferences {
 	public static final String USR_SERVICES_DIAGNOSES_SRV = "servicediagnose/srv";
 	public static final String USR_SERVICES_DIAGNOSES_DIAGNOSE = "servicediagnose/diagnose";
 	public static final String USR_SERVICES_DIAGNOSES_CODES = "servicediagnose/codes";
+	public static final String USR_AGENDAFONT = "anwender/agendafont"; //$NON-NLS-1$
 	
 	// Menu item "lock perspectives" (GlobalActions.fixLayoutAction)
 	public static final String USR_FIX_LAYOUT = "perspectives/fix_layout"; //$NON-NLS-1$

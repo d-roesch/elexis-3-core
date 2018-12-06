@@ -14,6 +14,10 @@ package ch.elexis.data;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -32,6 +36,7 @@ import ch.elexis.core.data.interfaces.events.MessageEvent;
 import ch.elexis.core.data.service.CodeElementServiceHolder;
 import ch.elexis.core.data.status.ElexisStatus;
 import ch.elexis.core.exceptions.PersistenceException;
+import ch.elexis.core.jdt.Nullable;
 import ch.elexis.core.model.ICodeElement;
 import ch.elexis.core.model.IDiagnose;
 import ch.elexis.core.model.IPersistentObject;
@@ -59,12 +64,18 @@ import ch.rgw.tools.VersionedResource.ResourceItem;
  * @author gerry
  */
 public class Konsultation extends PersistentObject implements Comparable<Konsultation> {
+	
+	private DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+	private DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HHmmss");
+	
 	public static final String FLD_ENTRY = "Eintrag";
 	public static final String DATE = "Datum";
+	public static final String FLD_TIME = "Zeit";
 	public static final String FLD_BILL_ID = "RechnungsID";
 	public static final String FLD_CASE_ID = "FallID";
 	public static final String FLD_MANDATOR_ID = "MandantID";
 	public static final String FLD_JOINT_DIAGNOSEN = "Diagnosen";
+	public static final String FLD_BILLABLE = "billable";
 	
 	private static final String TABLENAME = "BEHANDLUNGEN";
 	volatile int actEntry;
@@ -75,8 +86,8 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 	
 	static {
 		addMapping(TABLENAME, FLD_MANDATOR_ID, PersistentObject.DATE_COMPOUND, FLD_CASE_ID,
-			FLD_BILL_ID, "Eintrag=S:V:Eintrag",
-			FLD_JOINT_DIAGNOSEN + "=JOINT:BehandlungsID:DiagnoseID:BEHDL_DG_JOINT");
+			FLD_BILL_ID, "Eintrag=S:V:Eintrag", FLD_TIME,
+			FLD_JOINT_DIAGNOSEN + "=JOINT:BehandlungsID:DiagnoseID:BEHDL_DG_JOINT", FLD_BILLABLE);
 	}
 	
 	protected Konsultation(String id){
@@ -198,9 +209,12 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 				"Zu einem abgeschlossenen Fall kann keine neue Konsultation erstellt werden");
 		} else {
 			create(null);
+			TimeTool now = new TimeTool();
 			set(new String[] {
-				DATE, FLD_CASE_ID, FLD_MANDATOR_ID
-			}, new TimeTool().toString(TimeTool.DATE_GER), fall.getId(),
+				DATE, FLD_TIME, FLD_CASE_ID, FLD_MANDATOR_ID
+			}, now.toString(TimeTool.DATE_GER),
+				now.toString(TimeTool.TIME_COMPACT_FULL),
+				fall.getId(),
 				CoreHub.actMandant.getId());
 			fall.getPatient().setInfoElement("LetzteBehandlung", getId());
 		}
@@ -395,16 +409,45 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 	 * 
 	 * @param force
 	 *            auch setzen, wenn Kons nicht änderbar
+	 * 
 	 */
 	public void setDatum(String dat, boolean force){
-		if (dat != null) {
-			if (force || isEditable(true)) {
-				set(DATE, dat);
-			}
+		LocalDateTime parse = LocalDateTime.parse(dat, dateFormatter);
+		setDateTime(parse, force);
+	}
+	
+	/**
+	 * 
+	 * @return the local date and time of a consultation. If the consultation does not bear time
+	 *         information, it is defaulted to midnight
+	 * @since 3.7
+	 */
+	public @Nullable LocalDateTime getDateTime(){
+		String[] values = get(true, DATE, FLD_TIME);
+		LocalDate date = LocalDate.parse(values[0], dateFormatter);
+		LocalTime time = LocalTime.parse(values[1], timeFormatter);
+		return LocalDateTime.of(date, time);
+	}
+	
+	/**
+	 * 
+	 * @param dateTime
+	 * @since 3.7
+	 */
+	public void setDateTime(LocalDateTime dateTime, boolean force){
+		if(force || isEditable(true)) {
+			set(new String[] {
+				DATE, FLD_TIME
+			}, dateFormatter.format(dateTime), timeFormatter.format(dateTime));
 		}
 	}
 	
-	/** das Behandlungsdatum auslesen */
+	/**
+	 * Das Behandlungsdatum auslesen
+	 * 
+	 * @return
+	 * @since 3.7 consider #getLocalDateTime to retrieve date and time
+	 */
 	public String getDatum(){
 		String ret = get(DATE);
 		return ret;
@@ -491,10 +534,9 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 			}
 		}
 		
-		if(mandator != null) {
+		if (mandator != null) {
 			mandatorIsActive = !mandator.isInactive();
 		}
-
 		
 		boolean ok = billOK && mandantOK && bMandantLoggedIn && mandatorIsActive;
 		if (ok) {
@@ -505,16 +547,16 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 		if (showError) {
 			StringBuilder sb = new StringBuilder();
 			
-			if(!bMandantLoggedIn) {
+			if (!bMandantLoggedIn) {
 				sb.append("Es ist kein Mandant eingeloggt.");
 			}
-			if(!billOK) {
+			if (!billOK) {
 				sb.append("Für diese Behandlung wurde bereits eine Rechnung erstellt.");
 			}
-			if(!mandantOK) {
+			if (!mandantOK) {
 				sb.append("Diese Behandlung ist nicht von Ihnen");
 			}
-			if(!mandatorIsActive) {
+			if (!mandatorIsActive) {
 				sb.append("Der gewählte Mandant is inaktiv.");
 			}
 			
@@ -743,9 +785,8 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 	
 	/** Die zu dieser Konsultation gehörenden Leistungen holen */
 	public List<Verrechnet> getLeistungen(String[] prefetch){
-		Query<Verrechnet> qbe =
-			new Query<Verrechnet>(Verrechnet.class, Verrechnet.KONSULTATION, getId(),
-				Verrechnet.TABLENAME, prefetch);
+		Query<Verrechnet> qbe = new Query<Verrechnet>(Verrechnet.class, Verrechnet.KONSULTATION,
+			getId(), Verrechnet.TABLENAME, prefetch);
 		qbe.orderBy(false, Verrechnet.CLASS, Verrechnet.LEISTG_CODE);
 		return qbe.execute();
 	}
@@ -832,8 +873,7 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 				if (result.isOK()) {
 					MessageEvent.fireInformation("Info",
 						"Achtung: " + initialResult + "\n\n Es wurde bei der Position "
-							+ l.getCode()
-							+ " automatisch die Seite gewechselt."
+							+ l.getCode() + " automatisch die Seite gewechselt."
 							+ " Bitte korrigieren Sie die Leistung falls dies nicht korrekt ist.");
 				}
 				optifier.clearContext();
@@ -1000,10 +1040,10 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 		return true;
 	}
 	
-	/** Interface Comparable, um die Behandlungen nach Datum sortieren zu können */
+	/** Interface Comparable, um die Behandlungen nach Datum und Zeit sortieren zu können */
 	public int compareTo(Konsultation b){
-		TimeTool me = new TimeTool(getDatum());
-		TimeTool other = new TimeTool(b.getDatum());
+		LocalDateTime me = getDateTime();
+		LocalDateTime other = b.getDateTime();
 		return me.compareTo(other);
 	}
 	
@@ -1162,13 +1202,33 @@ public class Konsultation extends PersistentObject implements Comparable<Konsult
 				clone.addDiagnose(diagnose);
 			}
 			VersionedResource vr = clone.getEintrag();
-			vr.update(
-				"Diese Konsultation wurde durch die Korrektur der Rechnung "
-					+ invoiceSrc.getNr() + " erstellt.",
-				"Rechnungskorrektur");
+			vr.update("Diese Konsultation wurde durch die Korrektur der Rechnung "
+				+ invoiceSrc.getNr() + " erstellt.", "Rechnungskorrektur");
 			clone.setEintrag(vr, true);
 			return clone;
 		}
 		return null;
+	}
+	
+	/**
+	 * Should this {@link Konsultation} be considered to be billed.
+	 * 
+	 * @return
+	 */
+	public boolean isBillable(){
+		return get(FLD_BILLABLE).equals("1");
+	}
+	
+	/**
+	 * Set value if this {@link Konsultation} should be considered for billing.
+	 * 
+	 * @param value
+	 */
+	public void setBillable(boolean value){
+		if (value) {
+			set(FLD_BILLABLE, "1");
+		} else {
+			set(FLD_BILLABLE, "0");
+		}
 	}
 }

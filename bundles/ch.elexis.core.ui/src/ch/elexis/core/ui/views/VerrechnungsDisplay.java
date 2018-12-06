@@ -19,6 +19,7 @@ import java.util.List;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -28,6 +29,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.TableColumnLayout;
+import org.eclipse.jface.resource.FontDescriptor;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
@@ -49,6 +51,7 @@ import org.eclipse.swt.dnd.DropTargetEvent;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.GridData;
@@ -130,17 +133,25 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 		}
 	};
 	private TableColumnLayout tableLayout;
+	private ToolBarManager toolBarManager;
 	
 	public VerrechnungsDisplay(final IWorkbenchPage p, Composite parent, int style){
 		super(parent, style);
-		setLayout(new GridLayout(2, false));
+		setLayout(new GridLayout(3, false));
 		this.page = p;
 		defaultRGB = UiDesk.createColor(new RGB(255, 255, 255));
+		
+		Label label = new Label(this, SWT.NONE);
+		FontDescriptor boldDescriptor =
+			FontDescriptor.createFrom(label.getFont()).setStyle(SWT.BOLD);
+		Font boldFont = boldDescriptor.createFont(label.getDisplay());
+		label.setFont(boldFont);
+		label.setText(Messages.VerrechnungsDisplay_billing);
 		
 		billedLabel = new Label(this, SWT.NONE);
 		billedLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 		
-		ToolBarManager toolBarManager = new ToolBarManager(SWT.RIGHT);
+		toolBarManager = new ToolBarManager(SWT.RIGHT);
 		toolBarManager.add(new Action() {
 			@Override
 			public ImageDescriptor getImageDescriptor(){
@@ -163,6 +174,49 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 					StatusManager.getManager().handle(status, StatusManager.SHOW);
 				}
 			}
+			
+			@Override
+			public boolean isEnabled(){
+				return actEncounter != null && actEncounter.isBillable();
+			}
+		});
+		toolBarManager.add(new Action("", Action.AS_CHECK_BOX) {
+			
+			@Override
+			public ImageDescriptor getImageDescriptor(){
+				return Images.IMG_NOBILLING.getImageDescriptor();
+			}
+			
+			@Override
+			public String getText(){
+				return "keine Verrechnung";
+			}
+			
+			@Override
+			public void run(){
+				actEncounter.setBillable(!actEncounter.isBillable());
+				updateUi();
+			}
+			
+			@Override
+			public boolean isChecked(){
+				if (actEncounter != null) {
+					return !actEncounter.isBillable();
+				}
+				return false;
+			}
+			
+			@Override
+			public boolean isEnabled(){
+				return actEncounter != null && !isBilled(actEncounter);
+			}
+			
+			private boolean isBilled(Konsultation encounter){
+				if (encounter != null) {
+					return encounter.getRechnung() != null;
+				}
+				return false;
+			}
 		});
 		ToolBar toolBar = toolBarManager.createControl(this);
 		toolBar.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
@@ -170,7 +224,7 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 		makeActions();
 		tableLayout = new TableColumnLayout();
 		Composite tableComposite = new Composite(this, SWT.NONE);
-		tableComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+		tableComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
 		tableComposite.setLayout(tableLayout);
 		viewer = new TableViewer(tableComposite,
 			SWT.V_SCROLL | SWT.H_SCROLL | SWT.BORDER | SWT.MULTI | SWT.FULL_SELECTION);
@@ -470,6 +524,17 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 		actEncounter = encounter;
 		viewer.setInput(encounter.getLeistungen());
 		updateBilledLabel();
+		updateUi();
+	}
+	
+	private void updateUi(){
+		if (toolBarManager != null) {
+			for (IContributionItem contribution : toolBarManager.getItems()) {
+				contribution.update();
+			}
+			toolBarManager.update(true);
+		}
+		viewer.getTable().setEnabled(actEncounter != null && actEncounter.isBillable());
 	}
 	
 	/**
