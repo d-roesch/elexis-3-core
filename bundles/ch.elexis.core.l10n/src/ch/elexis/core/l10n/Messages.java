@@ -343,6 +343,17 @@ public class Messages extends NLS {
 	public static String SelectDateDialog_description;
 	public static String SelectDateDialog_from;
 	public static String SelectDateDialog_to;
+	public static String VerrDetailDialog_NoInteractionKnown;
+	public static String VerrDetailDialog_InteractionEpha;
+	public static String VerrDetailDialog_InteractionBaseURL;
+	public static String VerrDetailDialog_InteractionTooltip;
+	public static String VerrDetailDialog_ImportInteractions;
+	public static String VerrDetailDialog_DownloadInteractions;
+	public static String Interaction_Class_A;
+	public static String Interaction_Class_B;
+	public static String Interaction_Class_C;
+	public static String Interaction_Class_D;
+	public static String Interaction_Class_X;
 	public static String VerrDetailDialog_NoPatientSelected;
 	public static String VerrDetailDialog_billingData;
 	public static String VerrDetailDialog_detailsOfOpenKons;
@@ -2050,10 +2061,7 @@ public class Messages extends NLS {
 	public static String ImportLabMapping_shellTitle;
 	public static String ImportLabMapping_title;
 	public static String ImportLabMapping_titleProblemDialog;
-	public static String ImporterHost_ExplanationLine1;
-	public static String ImporterHost_ExplanationLine2;
-	public static String ImporterHost_ExplanationLine3;
-	public static String ImporterHost_ExplanationLine4;
+	public static String ImporterHost_Explanation;
 	public static String ImporterPage_allFiles;
 	public static String ImporterPage_browse;
 	public static String ImporterPage_couldntConnect;
@@ -2623,6 +2631,9 @@ public class Messages extends NLS {
 	public static String UserPreferences_SaveSettingsTo;
 	public static String UserPreferences_WorkspaceSettingsSaveTo;
 	public static String UserSettings2_AddidtionalFields;
+	public static String UserSettings2_SuppressInteractionCheck;
+	public static String SuppressInteractionActive;
+	public static String SuppressInteractionCheckTooltip;
 	public static String UserSettings2_AlwaysClosed;
 	public static String UserSettings2_AlwaysOpen;
 	public static String UserSettings2_Birthdate;
@@ -2683,6 +2694,10 @@ public class Messages extends NLS {
 	public static String BestellView_Title;
 	public static String BestellView_WizardAskNewOrder;
 	public static String BestellView_OrderIsClosed;
+	public static String DailyOrderMandant;
+	public static String DailyOrderMandantOnlyFollowing;
+	public static String DailyOrderMandantNone;
+	
 	
 	static { // load message values from bundle file
 		NLS.initializeMessages(BUNDLE_NAME, Messages.class);

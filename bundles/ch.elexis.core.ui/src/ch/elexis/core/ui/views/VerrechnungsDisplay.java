@@ -13,6 +13,7 @@
 package ch.elexis.core.ui.views;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,6 +67,8 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.menus.IMenuService;
 import org.eclipse.ui.statushandlers.StatusManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ch.elexis.admin.AccessControlDefaults;
 import ch.elexis.core.constants.Preferences;
@@ -76,6 +79,7 @@ import ch.elexis.core.data.events.ElexisEventDispatcher;
 import ch.elexis.core.data.events.ElexisEventListener;
 import ch.elexis.core.data.interfaces.IVerrechenbar;
 import ch.elexis.core.data.status.ElexisStatus;
+import ch.elexis.core.l10n.Messages;
 import ch.elexis.core.model.ICodeElement;
 import ch.elexis.core.model.IDiagnose;
 import ch.elexis.core.model.prescription.EntryType;
@@ -90,6 +94,7 @@ import ch.elexis.core.ui.locks.LockDeniedNoActionLockHandler;
 import ch.elexis.core.ui.util.PersistentObjectDropTarget;
 import ch.elexis.core.ui.util.SWTHelper;
 import ch.elexis.core.ui.views.codesystems.LeistungenView;
+import ch.elexis.core.ui.views.controls.InteractionLink;
 import ch.elexis.data.Artikel;
 import ch.elexis.data.Eigenleistung;
 import ch.elexis.data.Konsultation;
@@ -104,6 +109,7 @@ import ch.rgw.tools.StringTool;
 public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	
 	private Label billedLabel;
+	private InteractionLink interactionLink;
 	private Table table;
 	private TableViewer viewer;
 	private MenuManager contextMenuManager;
@@ -111,35 +117,37 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	private String defaultRGB;
 	private IWorkbenchPage page;
 	private final PersistentObjectDropTarget dropTarget;
-	private IAction applyMedicationAction, chPriceAction, chCountAction,
-			chTextAction, removeAction,
+	private IAction applyMedicationAction, chPriceAction, chCountAction, chTextAction, removeAction,
 			removeAllAction;
 	private TableViewerFocusCellManager focusCellManager;
 	
-	private static final String INDICATED_MEDICATION = Messages.VerrechnungsDisplay_indicatedMedication;
+	private static final String INDICATED_MEDICATION =
+		Messages.VerrechnungsDisplay_indicatedMedication;
 	private static final String APPLY_MEDICATION = Messages.VerrechnungsDisplay_applyMedication;
 	private static final String CHPRICE = Messages.VerrechnungsDisplay_changePrice;
 	private static final String CHCOUNT = Messages.VerrechnungsDisplay_changeNumber;
 	private static final String REMOVE = Messages.VerrechnungsDisplay_removeElements;
 	private static final String CHTEXT = Messages.VerrechnungsDisplay_changeText;
 	private static final String REMOVEALL = Messages.VerrechnungsDisplay_removeAll;
+	static Logger logger = LoggerFactory.getLogger(VerrechnungsDisplay.class);
 	
-	private final ElexisEventListener eeli_update = new ElexisUiEventListenerImpl(
-		Konsultation.class, ElexisEvent.EVENT_UPDATE) {
-		@Override
-		public void runInUi(ElexisEvent ev){
-			PersistentObject obj = ev.getObject();
-			if (obj != null && obj.equals(actEncounter)) {
-				viewer.setInput(actEncounter.getLeistungen());
+	private final ElexisEventListener eeli_update =
+		new ElexisUiEventListenerImpl(Konsultation.class, ElexisEvent.EVENT_UPDATE) {
+			@Override
+			public void runInUi(ElexisEvent ev){
+				PersistentObject obj = ev.getObject();
+				if (obj != null && obj.equals(actEncounter)) {
+					viewer.setInput(actEncounter.getLeistungen());
+				}
 			}
-		}
-	};
+		};
 	private TableColumnLayout tableLayout;
 	private ToolBarManager toolBarManager;
 	
 	public VerrechnungsDisplay(final IWorkbenchPage p, Composite parent, int style){
 		super(parent, style);
-		setLayout(new GridLayout(3, false));
+		final int columns_for_each_drug = 4;
+		setLayout(new GridLayout(columns_for_each_drug, false));
 		this.page = p;
 		defaultRGB = UiDesk.createColor(new RGB(255, 255, 255));
 		
@@ -152,8 +160,9 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 		
 		billedLabel = new Label(this, SWT.NONE);
 		billedLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
-		
-		toolBarManager = new ToolBarManager(SWT.RIGHT);
+		interactionLink = new InteractionLink(this, SWT.NONE);
+		interactionLink.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
+		ToolBarManager toolBarManager = new ToolBarManager(SWT.RIGHT);
 		toolBarManager.add(new Action() {
 			@Override
 			public ImageDescriptor getImageDescriptor(){
@@ -226,12 +235,13 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 		menuService.populateContributionManager(toolBarManager, "toolbar:ch.elexis.VerrechnungsDisplay");
 		
 		ToolBar toolBar = toolBarManager.createControl(this);
-		toolBar.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+		toolBar.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
 		
 		makeActions();
 		tableLayout = new TableColumnLayout();
 		Composite tableComposite = new Composite(this, SWT.NONE);
-		tableComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 3, 1));
+
+		tableComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, columns_for_each_drug, 1));
 		tableComposite.setLayout(tableLayout);
 		viewer = new TableViewer(tableComposite,
 			SWT.V_SCROLL | SWT.H_SCROLL | SWT.BORDER | SWT.MULTI | SWT.FULL_SELECTION);
@@ -287,9 +297,8 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 			}
 		});
 		
-		dropTarget =
-			new PersistentObjectDropTarget(Messages.VerrechnungsDisplay_doBill, table,
-				new DropReceiver()); //$NON-NLS-1$
+		dropTarget = new PersistentObjectDropTarget(Messages.VerrechnungsDisplay_doBill, table,
+			new DropReceiver()); //$NON-NLS-1$
 		
 		// refresh the table if a update to a Verrechnet occurs
 		ElexisEventDispatcher.getInstance().addListeners(
@@ -435,16 +444,26 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	}
 	
 	private void updateBilledLabel(){
+		ArrayList<Artikel> gtins = new ArrayList<Artikel>();
 		if (actEncounter != null) {
 			Money sum = new Money(0);
 			for (Verrechnet billed : actEncounter.getLeistungen()) {
 				Money preis = billed.getNettoPreis().multiply(billed.getZahl());
 				sum.addMoney(preis);
+				IVerrechenbar verrechenbar = billed.getVerrechenbar();
+				if (verrechenbar != null && verrechenbar instanceof Artikel) {
+					Artikel art = (Artikel) verrechenbar;
+					gtins.add(art);
+				}
 			}
-			billedLabel.setText(Messages.PatHeuteView_accAmount + " " + sum.getAmountAsString()
-				+ " / " + Messages.PatHeuteView_accTime + " " + actEncounter.getMinutes());
+			if (gtins.size() > 1) {
+				billedLabel.setText(String.format("%s %s / %s %s", //$NON-NLS-1$
+					Messages.PatHeuteView_accAmount, sum.getAmountAsString(),
+					Messages.PatHeuteView_accTime, actEncounter.getMinutes()));
+			}
+			interactionLink.updateAtcs(gtins);
 		} else {
-			billedLabel.setText("");
+			billedLabel.setText(""); //$NON-NLS-1$
 		}
 		layout();
 	}
@@ -545,7 +564,8 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	}
 	
 	/**
-	 * Filter codes of {@link Verrechnet} where ID is used as code. This is relevant for {@link Eigenleistung} and Eigenartikel.
+	 * Filter codes of {@link Verrechnet} where ID is used as code. This is relevant for
+	 * {@link Eigenleistung} and Eigenartikel.
 	 * 
 	 * @param lst
 	 * @return
@@ -746,7 +766,7 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 					if (selected instanceof Verrechnet) {
 						Verrechnet billed = (Verrechnet) selected;
 						AcquireLockUi.aquireAndRun(billed, new LockDeniedNoActionLockHandler() {
-
+							
 							@Override
 							public void lockAcquired(){
 								Money oldPrice = billed.getBruttoPreis();
@@ -896,7 +916,7 @@ public class VerrechnungsDisplay extends Composite implements IUnlockable {
 	}
 	
 	@Override
-	public void setUnlocked(boolean unlocked) {
+	public void setUnlocked(boolean unlocked){
 		setEnabled(unlocked);
 		redraw();
 	}
